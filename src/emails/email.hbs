@@ -1,0 +1,13 @@
+<html>
+  <head>
+    <title>List of URLs</title>
+  </head>
+  <body>
+    <h1>Here are today's jobs {{date}}</h1>
+    <ul>
+      {{#each urls}}
+        <li><a href='{{this}}'>{{this}}</a></li>
+      {{/each}}
+    </ul>
+  </body>
+</html>
