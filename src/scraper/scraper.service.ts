@@ -2,16 +2,23 @@ import { Injectable } from '@nestjs/common';
 import * as puppeteer from 'puppeteer';
 import * as nodemailer from 'nodemailer';
 import * as hbs from 'nodemailer-express-handlebars';
+import { format, subDays } from 'date-fns';
 
 @Injectable()
 export class ScraperService {
   constructor() {}
 
   async search() {
+    const currentDate = new Date();
+
+    const prevDay = subDays(currentDate, 1);
+
+    const formattedPrevDay = format(prevDay, 'yyyy-MM-dd');
+    const formattedCurrentDay = format(currentDate, 'yyyy-MM-dd');
+
     const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
-    const searchQuery =
-      'site:linkedin.com | site:lever.co | site:greenhouse.io | site:jobs.ashbyhq.com frontend';
+    const searchQuery = `site:lever.co | site:greenhouse.io | site:jobs.ashbyhq.com | site:apply.workable.com | site:app.dover.io | site:talentlyft.com | site:jobs.polymer.co | site:recruitee.com | site:jobvite.com | site:jobs.smartrecruiters.com (Frontend engineer | full stack developer | full stack engineer) 'react'  after:${formattedPrevDay} before:${formattedCurrentDay}`;
 
     await page.goto(`https://www.google.com/search?q=${searchQuery}`);
 
@@ -19,27 +26,36 @@ export class ScraperService {
       anchors.map((anchor) => anchor.getAttribute('href')),
     );
 
-    // Filter and clean up the links
     const cleanedLinks = links
       .filter((link) => link && link.startsWith('http'))
       .slice(9);
-    await this.sendEmail('bankolek1@gmail.com', 'job links', cleanedLinks);
+    await this.sendEmail(
+      [
+        'bankolek1@gmail.com',
+        'bankolek5@gmail.com',
+        'eugeneishado44@gmail.com',
+      ],
+      'job links',
+      cleanedLinks,
+      searchQuery,
+    );
 
     await browser.close();
     return { cleanedLinks };
   }
 
   async sendEmail(
-    userEmail: string,
+    userEmails: string[],
     subject: string,
     urls: string[],
+    query: string,
   ): Promise<void> {
     const handlebarsOptions = {
       viewEngine: {
         extName: '.hbs',
-        defaultLayout: '', // Layout file (optional)
+        defaultLayout: '',
       },
-      viewPath: './src/emails', // Directory containing email templates
+      viewPath: './src/emails',
       extName: '.hbs',
     };
 
@@ -54,11 +70,11 @@ export class ScraperService {
 
     const mailOptions = {
       from: 'bankolek1@gmail.com',
-      to: userEmail,
+      to: userEmails,
       subject: subject,
       template: 'email',
       text_template: 'email',
-      context: { urls, date: new Date().toLocaleDateString() },
+      context: { urls, query, date: new Date().toLocaleDateString() },
     };
 
     await transporter.sendMail(mailOptions);
